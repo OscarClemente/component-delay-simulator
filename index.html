@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link href="https://allfont.net/allfont.css?fonts=digital-7" rel="stylesheet" type="text/css" />
+    <style>
+        body { 
+            background: #202020;
+            color: #DDDDDD;
+            text-align:center;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .slidecontainer {
+          width: 100%;
+        }
+        
+        .slider {
+          -webkit-appearance: none;
+          width: 100%;
+          height: 25px;
+          background: #d3d3d3;
+          outline: none;
+          opacity: 0.7;
+          -webkit-transition: .2s;
+          transition: opacity .2s;
+        }
+        
+        .slider:hover {
+          opacity: 1;
+        }
+        
+        .slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 25px;
+          height: 25px;
+          background: #940000;
+          cursor: pointer;
+        }
+
+        input[type='range']::-webkit-slider-runnable-track {
+            height: 25px;
+            -webkit-appearance: none;
+            color: #940000;
+            margin-top: -1px;
+        }
+
+        /* moz */
+        input[type="range"]::-moz-range-progress {
+            height: 25px;
+            background-color: #940000;
+        }
+
+        /* IE */
+        input[type="range"]::-ms-fill-lower {
+            height: 25px;
+            background-color: #940000;
+        }
+        
+        .slider::-moz-range-thumb {
+          width: 25px;
+          height: 25px;
+          background: #940000;
+          cursor: pointer;
+        }
+
+        .seven-digit-display {
+            font-family: 'Digital-7', arial;
+            font-size: 30px;
+            color: #F00000;
+            font-weight: bold;
+        }
+
+        .component {
+            margin: 50px;
+        }
+        </style>
+</head>
+<body>
+    <h2>Component delay simulator</h2>
+    <div class="component">
+        <p>Electronic Value: </p>
+        <span id="pbValue" class="seven-digit-display">0</span>
+    </div>
+    <div class="component">
+        <p>Domain Logic Value: </p>
+        <span id="domainValue" class="seven-digit-display">0</span>
+    </div>
+    <div class="component">
+        <p>Domain Adapter Value: </p>
+        <span id="domainAdapterValue" class="seven-digit-display">0</span>
+    </div>
+    <div class="component">
+        <p>UI Value: </p>
+        <span id="uiValue" class="seven-digit-display">0</span>
+    </div>
+    <div class="slidecontainer">
+        <input type="range" min="0" max="10" class="slider" value="0" id="uiSlider">
+    </div>
+    <p>
+        Delay between components:
+    </p>
+    <p>
+        <input type="number" id="delayVal" name="delayVal" min="0" max="10000" value="500">
+    </p>
+    <p>
+        UI min frequency:
+    </p>
+    <p>
+        <input type="number" id="frequencyVal" name="frequencyVal" min="0" max="10000" value="200">
+    </p>
+
+    <script>
+        var uiSlider = document.getElementById("uiSlider");
+        var ui = document.getElementById("uiValue");
+        var delayBetweenComponents = document.getElementById("delayVal");
+        var minUiFrequency = document.getElementById("frequencyVal");
+        var timerUiSet = false;
+        var timerUiValue = 0;
+
+        function setPB(value) {
+            document.getElementById('pbValue').innerHTML = value;
+        }
+
+        function requestDomain(newValue) {
+            var domainVal = document.getElementById('domainValue').innerHTML
+            if (newValue != domainVal) {
+                document.getElementById('domainValue').innerHTML = newValue;
+                setTimeout(setPB.bind(null, newValue), delayBetweenComponents.value);
+                setTimeout(setDomainAdapter.bind(null, newValue), delayBetweenComponents.value);
+            }
+        }
+
+        function setDomainAdapter(newValue) {
+            var domainAdapterVal = document.getElementById('domainAdapterValue').innerHTML;
+            if (newValue != domainAdapterVal) {
+                document.getElementById('domainAdapterValue').innerHTML = newValue;
+                setTimeout(setUi.bind(null, newValue), delayBetweenComponents.value);
+            }
+        }
+
+        function requestDomainAdapter(newValue) {
+            var domainAdapterVal = document.getElementById('domainAdapterValue').innerHTML;
+            if (newValue != domainAdapterVal) {
+                document.getElementById('domainAdapterValue').innerHTML = newValue;
+                setTimeout(requestDomain.bind(null, newValue), delayBetweenComponents.value);
+            }
+        }
+
+        function setUi(newValue) {
+            var uiVal = document.getElementById('uiValue').innerHTML;
+            if (newValue != uiVal) {
+                document.getElementById('uiValue').innerHTML = newValue;
+                document.getElementById('uiSlider').value = newValue;
+            }
+        }
+
+        function sendUiMsgWithFrequencyLimitation(newValue, fromTimeout) {
+            if (fromTimeout == false) {
+                timerUiValue = newValue;
+                if (timerUiSet == false) {
+                    timerUiSet = true;
+                    setTimeout(sendUiMsgWithFrequencyLimitation.bind(null, newValue, true), minUiFrequency.value);
+                }
+            }
+            else {
+                timerUiSet = false;
+                setTimeout(requestDomainAdapter.bind(null, timerUiValue), delayBetweenComponents.value);
+            }
+        }
+        
+        uiSlider.oninput = function() {
+            ui.innerHTML = this.value;
+            sendUiMsgWithFrequencyLimitation(this.value, false);
+        }
+    </script>
+</body>
+</html>
